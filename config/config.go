@@ -58,6 +58,8 @@ type Config struct {
 	Repos                 map[string]*Repo `json:"repos"`
 	MaxConcurrentIndexers int              `json:"max-concurrent-indexers"`
 	HealthCheckURI        string           `json:"health-check-uri"`
+	FullCertFilename      string           `json:"full_cert_filename"`
+	PrivCertFilename      string           `json:"priv_cert_filename"`
 }
 
 // SecretMessage is just like json.RawMessage but it will not
@@ -143,6 +145,23 @@ func (c *Config) LoadFromFile(filename string) error {
 			return err
 		}
 		c.DbPath = path
+	}
+
+	if !filepath.IsAbs(c.FullCertFilename) {
+		path, err := filepath.Abs(
+			filepath.Join(filepath.Dir(filename), c.FullCertFilename))
+		if err != nil {
+			return err
+		}
+		c.FullCertFilename = path
+	}
+	if !filepath.IsAbs(c.PrivCertFilename) {
+		path, err := filepath.Abs(
+			filepath.Join(filepath.Dir(filename), c.PrivCertFilename))
+		if err != nil {
+			return err
+		}
+		c.PrivCertFilename = path
 	}
 
 	for _, repo := range c.Repos {

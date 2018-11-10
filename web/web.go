@@ -61,7 +61,19 @@ func Start(cfg *config.Config, addr string, dev bool) *Server {
 	}
 
 	go func() {
-		ch <- http.ListenAndServe(addr, s)
+		if cfg.FullCertFilename != "" && cfg.PrivCertFilename != "" {
+			err := http.ListenAndServeTLS(addr, cfg.FullCertFilename, cfg.PrivCertFilename, s)
+			if err != nil {
+				fmt.Printf("ListenAndServeTLS %s: %v\n", addr, err)
+			}
+			ch <- err
+		} else {
+			err := http.ListenAndServe(addr, s)
+			if err != nil {
+				fmt.Printf("ListenAndServe %s: %v\n", addr, err)
+			}
+			ch <- err
+		}
 	}()
 
 	return s
