@@ -8,15 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/etsy/hound.git"
+    "url": "git+https://github.com/karmakaze/hound.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/etsy/hound/issues"
+    "url": "https://github.com/karmakaze/hound/issues"
   },
-  "homepage": "https://github.com/etsy/hound#readme",
+  "homepage": "https://github.com/karmakaze/hound#readme",
   "devDependencies": {
     "babel-core": "^6.26.3",
     "babel-loader": "^7.1.5",

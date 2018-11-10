@@ -15,7 +15,7 @@ Hound is an extremely fast source code search engine. The core is based on this 
 1. Use the Go tools to install Hound. The binaries `houndd` (server) and `hound` (cli) will be installed in your $GOPATH.
 
 ```
-go get github.com/etsy/hound/cmds/...
+go get github.com/karmakaze/hound/cmds/...
 ```
 
 2. Create a [config.json](config-example.json) in a directory with your list of repositories.
@@ -32,9 +32,9 @@ go get github.com/etsy/hound/cmds/...
 
 1. Create a [config.json](config-example.json) in a directory with your list of repositories.
 
-2. Run 
+2. Run
 ```
-docker run -d -p 6080:6080 --name hound -v $(pwd):/data etsy/hound
+docker run -d -p 6080:6080 --name hound -v $(pwd):/data karmakaze/hound
 ```
 
 You should be able to navigate to [http://localhost:6080/](http://localhost:6080/) as usual.
@@ -59,7 +59,7 @@ Yup, that's it. You can proxy requests to the Go service through Apache/nginx/et
 
 Currently Hound is only tested on MacOS and CentOS, but it should work on any *nix system. Hound on Windows is not supported but we've heard it compiles and runs just fine.
 
-Hound supports the following version control systems: 
+Hound supports the following version control systems:
 
 * Git - This is the default
 * Mercurial - use `"vcs" : "hg"` in the config
@@ -74,12 +74,12 @@ There are a couple of ways to get Hound to index private repositories:
 
 * Use the `file://` protocol. This allows you to index a local clone of a repository. The downside here is that the polling to keep the repo up to date will
 not work. (This also doesn't work on local folders that are not of a supported repository type.)
-* Use SSH style URLs in the config: `"url" : "git@github.com:foo/bar.git"`. As long as you have your 
+* Use SSH style URLs in the config: `"url" : "git@github.com:foo/bar.git"`. As long as you have your
 [SSH keys](https://help.github.com/articles/generating-ssh-keys/) set up on the box where Hound is running this will work.
 
 ## Keeping Repos Updated
 
-By default Hound polls the URL in the config for updates every 30 seconds. You can override this value by setting the `ms-between-poll` key on a per repo basis in the config. If you are indexing a large number of repositories, you may also be interested in tweaking the `max-concurrent-indexers` property. You can see how these work in the [example config](config-example.json). 
+By default Hound polls the URL in the config for updates every 30 seconds. You can override this value by setting the `ms-between-poll` key on a per repo basis in the config. If you are indexing a large number of repositories, you may also be interested in tweaking the `max-concurrent-indexers` property. You can see how these work in the [example config](config-example.json).
 
 ## Editor Integration
 
@@ -103,8 +103,8 @@ Go tools work accordingly. See [Setting GOPATH](https://github.com/golang/go/wik
 up your Go workspace. With a `GOPATH` set, the following commands will build hound locally.
 
 ```
-git clone https://github.com/etsy/hound.git ${GOPATH}/src/github.com/etsy/hound
-cd ${GOPATH}/src/github.com/etsy/hound
+git clone https://github.com/karmakaze/hound.git ${GOPATH}/src/github.com/karmakaze/hound
+cd ${GOPATH}/src/github.com/karmakaze/hound
 make
 ```
 
