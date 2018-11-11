@@ -114,7 +114,6 @@ func runHttp(
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	info_log = log.New(os.Stdout, "", log.LstdFlags)
 	error_log = log.New(os.Stderr, "", log.LstdFlags)
 
