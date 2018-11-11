@@ -138,7 +138,7 @@ func (c *Config) LoadFromFile(filename string) error {
 		return err
 	}
 
-	if !filepath.IsAbs(c.DbPath) {
+	if c.DbPath != "" && !filepath.IsAbs(c.DbPath) {
 		path, err := filepath.Abs(
 			filepath.Join(filepath.Dir(filename), c.DbPath))
 		if err != nil {
@@ -147,7 +147,7 @@ func (c *Config) LoadFromFile(filename string) error {
 		c.DbPath = path
 	}
 
-	if !filepath.IsAbs(c.FullCertFilename) {
+	if c.FullCertFilename != "" && !filepath.IsAbs(c.FullCertFilename) {
 		path, err := filepath.Abs(
 			filepath.Join(filepath.Dir(filename), c.FullCertFilename))
 		if err != nil {
@@ -155,7 +155,7 @@ func (c *Config) LoadFromFile(filename string) error {
 		}
 		c.FullCertFilename = path
 	}
-	if !filepath.IsAbs(c.PrivCertFilename) {
+	if c.PrivCertFilename != "" && !filepath.IsAbs(c.PrivCertFilename) {
 		path, err := filepath.Abs(
 			filepath.Join(filepath.Dir(filename), c.PrivCertFilename))
 		if err != nil {
