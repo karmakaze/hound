@@ -63,7 +63,12 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) loginCallback(w http.ResponseWriter, r *http.Request) {
-	// TODO: login/callback
+	// TODO: make http request to get tokens from code
+	// curl -X POST -H 'Content-Type: application/json' -d '{"grant_type":"authorization_code", "client_id": "___", "client_secret": "___", "code": "___", "redirect_uri": "https://codegrep.keithkim.org/"}' 'https://karmakaze.auth0.com/oauth/token'
+	// {"access_token":"___", "id_token":"___.___.___", "scope":"openid email", "expires_in":86400, "token_type":"Bearer"}
+
+	// TODO: validate the id_token (JWT) using s.cfg.JwtPublicKeyFilename
+	// https://github.com/dgrijalva/jwt-go
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
