@@ -16,6 +16,9 @@ const (
 	defaultBaseUrl               = "{url}/blob/master/{path}{anchor}"
 	defaultAnchor                = "#L{line}"
 	defaultHealthChekURI         = "/healthz"
+	defaultLoginURI              = "/login"
+	defaultLoginCallbackURI      = "/login/callback"
+	defaultLogoutURI             = "/logout"
 )
 
 type UrlPattern struct {
@@ -58,6 +61,10 @@ type Config struct {
 	Repos                 map[string]*Repo `json:"repos"`
 	MaxConcurrentIndexers int              `json:"max-concurrent-indexers"`
 	HealthCheckURI        string           `json:"health-check-uri"`
+	LoginURI              string           `json:"login-uri"`
+	LoginCallbackURI      string           `json:"login-callback-uri"`
+	AuthorizeURI          string           `json:"authorize-uri"`
+	LogoutURI             string           `json:"logout-uri"`
 	FullCertFilename      string           `json:"full_cert_filename"`
 	PrivCertFilename      string           `json:"priv_cert_filename"`
 }
@@ -124,6 +131,16 @@ func initConfig(c *Config) {
 
 	if c.HealthCheckURI == "" {
 		c.HealthCheckURI = defaultHealthChekURI
+	}
+
+	if c.LoginURI == "" {
+		c.LoginURI = defaultLoginURI
+	}
+	if c.LoginCallbackURI == "" {
+		c.LoginCallbackURI = defaultLoginCallbackURI
+	}
+	if c.LogoutURI == "" {
+		c.LogoutURI = defaultLogoutURI
 	}
 }
 

@@ -30,6 +30,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Path == s.cfg.LoginURI {
+		s.login(w, r)
+		return
+	}
+	if r.URL.Path == s.cfg.LoginCallbackURI {
+		s.loginCallback(w, r)
+		return
+	}
+	if r.URL.Path == s.cfg.LogoutURI {
+		s.logout(w, r)
+		return
+	}
+
 	s.lck.RLock()
 	defer s.lck.RUnlock()
 	if m := s.mux; m != nil {
@@ -39,6 +52,32 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"Hound is not ready.",
 			http.StatusServiceUnavailable)
 	}
+}
+
+func (s *Server) login(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.AuthorizeURI != "" {
+		http.Redirect(w, r, s.cfg.AuthorizeURI, http.StatusFound)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func (s *Server) loginCallback(w http.ResponseWriter, r *http.Request) {
+	// TODO: login/callback
+}
+
+func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	// delete auth cookie
+	cookie := http.Cookie{
+		Name:  "s.cfg.AuthCookieName",
+		Value: "",
+		//		Domain:   s.cfg.Domain,
+		Path:     "/",
+		MaxAge:   0,
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
 }
 
 func (s *Server) serveWith(m *http.ServeMux) {
