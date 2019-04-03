@@ -66,8 +66,8 @@ type Config struct {
 	AuthorizeURI          string           `json:"authorize-uri"`
 	LogoutURI             string           `json:"logout-uri"`
 	JwtPublicKeyFilename  string           `json:"jwt-public-key-filename"`
-	FullCertFilename      string           `json:"full_cert_filename"`
-	PrivCertFilename      string           `json:"priv_cert_filename"`
+	FullCertFilename      string           `json:"full-cert-filename"`
+	PrivCertFilename      string           `json:"priv-cert-filename"`
 }
 
 // SecretMessage is just like json.RawMessage but it will not
