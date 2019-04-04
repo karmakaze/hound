@@ -8,10 +8,15 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/karmakaze/hound/config"
 )
+
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 func Login(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
 	state := randomHexBytes(12)
@@ -55,9 +60,6 @@ func LoginCallback(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var httpClient = &http.Client{
-		Timeout: 10 * time.Second,
-	}
 	state = randomHexBytes(12)
 	values := url.Values{}
 	values.Set("client_id", cfg.AuthClientId)
@@ -93,9 +95,20 @@ func validateTokenResponse(values url.Values, cfg *config.Config, w http.Respons
 	tokenType := values.Get("token_type")
 	scope := values.Get("scope")
 
-	log.Printf("Got access_token: %s", accessToken)
-	log.Printf("Got token_type: %s", tokenType)
-	log.Printf("Got scope: %s", scope)
+	_ = tokenType + accessToken + scope
+
+	for _, repo := range cfg.Repos {
+		if strings.HasPrefix(repo.Url, "github.com/") {
+			url := "https://api.github.com/repos/" + strings.TrimSuffix(strings.TrimPrefix(repo.Url, "github.com/"), ".git")
+			resp, err := httpClient.Get(url)
+			log.Printf("DEBUG GET %s: status %d err %v", url, resp.StatusCode, err)
+			if resp.Body != nil {
+				ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+			}
+		}
+	}
+	http.Redirect(w, r, cfg.AppURI, http.StatusSeeOther)
 }
 
 func randomHexBytes(n int) string {
