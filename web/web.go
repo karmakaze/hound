@@ -1,10 +1,16 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/karmakaze/hound/api"
 	"github.com/karmakaze/hound/config"
 	"github.com/karmakaze/hound/searcher"
@@ -63,12 +69,76 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) loginCallback(w http.ResponseWriter, r *http.Request) {
-	// TODO: make http request to get tokens from code
-	// curl -X POST -H 'Content-Type: application/json' -d '{"grant_type":"authorization_code", "client_id": "___", "client_secret": "___", "code": "___", "redirect_uri": "https://codegrep.keithkim.org/"}' 'https://karmakaze.auth0.com/oauth/token'
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing 'code' parameter"))
+		return
+	}
+
+	var httpClient = &http.Client{
+		Timeout: time.Second * 10,
+	}
+	body := `{ "grant_type": "authorization_code",`
+	body += ` "client_id": "` + s.cfg.AuthClientId + `",`
+	body += ` "client_secret": "` + s.cfg.AuthClientSecret + `",`
+	body += ` "code": "` + strings.ReplaceAll(code, `"`, `\"`) + `",`
+	body += ` "redirect_uri": "` + s.cfg.AuthTokenRedirectURI + `" }`
+	resp, err := httpClient.Post(s.cfg.AuthTokenURI, "application/json", strings.NewReader(body))
+	if err != nil {
+		log.Printf("Couldn't get token from code: %s", err)
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
+	s.validateTokenResponse(resp.Body, s.cfg, w, r)
+
 	// {"access_token":"___", "id_token":"___.___.___", "scope":"openid email", "expires_in":86400, "token_type":"Bearer"}
 
 	// TODO: validate the id_token (JWT) using s.cfg.JwtPublicKeyFilename
 	// https://github.com/dgrijalva/jwt-go
+}
+
+func (s *Server) validateTokenResponse(body io.ReadCloser, cfg *config.Config, w http.ResponseWriter, r *http.Request) {
+	values := make(map[string]interface{})
+	decoder := json.NewDecoder(body)
+	if err := decoder.Decode(&values); err != nil {
+
+	}
+	accessToken, _ := values["access_token"].(string)
+	tokenType, _ := values["token_type"].(string)
+	scope, _ := values["scope"].(string)
+	expiresIn, _ := values["expires_in"].(int)
+	idToken, _ := values["id_token"].(string)
+
+	log.Printf("Got access_token: %s", accessToken)
+	log.Printf("Got token_type: %s", tokenType)
+	log.Printf("Got scope: %s", scope)
+	log.Printf("Got expires_in: %d", expiresIn)
+	log.Printf("Got id_token: %s", idToken)
+
+	s.validateJwt(idToken, cfg, w, r)
+}
+
+func (s *Server) validateJwt(idToken string, cfg *config.Config, w http.ResponseWriter, r *http.Request) (jwt.MapClaims, error) {
+	jwToken, err := jwt.Parse(idToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		if _, ok := token.Claims.(jwt.MapClaims); ok {
+			return cfg.JwtPublicKey, nil
+		} else {
+			return nil, fmt.Errorf("token is missing claims")
+		}
+	})
+	if err != nil {
+		log.Printf("Unauthorized: %v", err)
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if claims, ok := jwToken.Claims.(jwt.MapClaims); ok && jwToken.Valid {
+		return claims, nil
+	} else {
+		return nil, fmt.Errorf("unauthorized")
+	}
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {

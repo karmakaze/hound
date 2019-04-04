@@ -1,10 +1,14 @@
 package config
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -64,10 +68,16 @@ type Config struct {
 	LoginURI              string           `json:"login-uri"`
 	LoginCallbackURI      string           `json:"login-callback-uri"`
 	AuthorizeURI          string           `json:"authorize-uri"`
+	AuthTokenURI          string           `json:"auth-token-uri"`
+	AuthTokenRedirectURI  string           `json:"auth-token-redirect-uri"`
+	AuthClientId          string           `json:"auth-client-id"`
+	AuthClientSecret      string           `json:"auth-client-secret"`
+	AuthCookieName        string           `json:"auth-cookie-name"`
 	LogoutURI             string           `json:"logout-uri"`
-	JwtPublicKeyFilename  string           `json:"jwt-public-key-filename"`
-	FullCertFilename      string           `json:"full-cert-filename"`
-	PrivCertFilename      string           `json:"priv-cert-filename"`
+	JwtPublicKey          []byte
+	JwtPublicKeyFilename  string `json:"jwt-public-key-filename"`
+	FullCertFilename      string `json:"full-cert-filename"`
+	PrivCertFilename      string `json:"priv-cert-filename"`
 }
 
 // SecretMessage is just like json.RawMessage but it will not
@@ -126,6 +136,22 @@ func initRepo(r *Repo) {
 
 // Populate missing config values with default values.
 func initConfig(c *Config) {
+	if len(c.JwtPublicKey) == 0 && c.JwtPublicKeyFilename != "" {
+		if data, err := ioutil.ReadFile(c.JwtPublicKeyFilename); err != nil {
+			log.Printf("Error reading jwt-public-key-filename %s: %s",
+				c.JwtPublicKeyFilename, err)
+		} else {
+			b64 := string(data)
+			b64 = strings.Replace(b64, "-----BEGIN CERTIFICATE-----", "", 1)
+			b64 = strings.ReplaceAll(b64, "\r", "")
+			b64 = strings.ReplaceAll(b64, "\n", "")
+			b64 = strings.Replace(b64, "-----END CERTIFICATE-----", "", 1)
+			if c.JwtPublicKey, err = base64.StdEncoding.DecodeString(b64); err != nil {
+				log.Printf("Error base64 decoding contents of jwt-public-key-filename %s: %s",
+					c.JwtPublicKeyFilename, err)
+			}
+		}
+	}
 	if c.MaxConcurrentIndexers == 0 {
 		c.MaxConcurrentIndexers = defaultMaxConcurrentIndexers
 	}
