@@ -97,17 +97,34 @@ func validateTokenResponse(values url.Values, cfg *config.Config, w http.Respons
 
 	_ = tokenType + accessToken + scope
 
+	accessible := make([]string, 0, len(cfg.Repos))
 	for _, repo := range cfg.Repos {
-		if strings.HasPrefix(repo.Url, "github.com/") {
-			url := "https://api.github.com/repos/" + strings.TrimSuffix(strings.TrimPrefix(repo.Url, "github.com/"), ".git")
-			resp, err := httpClient.Get(url)
-			log.Printf("DEBUG GET %s: status %d err %v", url, resp.StatusCode, err)
+		if strings.HasPrefix(repo.Url, "https://github.com/") {
+			name := strings.TrimSuffix(strings.TrimPrefix(repo.Url, "https://"), ".git")
+			path := strings.TrimSuffix(strings.TrimPrefix(repo.Url, "https://github.com/"), ".git")
+			path = strings.TrimSuffix(path, ".wiki") // access to repo implies access to its wiki
+			url := "https://api.github.com/repos/" + path
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.Header.Add("Authorization", "token "+accessToken)
+
+			resp, err := httpClient.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				accessible = append(accessible, name)
+			}
 			if resp.Body != nil {
 				ioutil.ReadAll(resp.Body)
 				resp.Body.Close()
 			}
 		}
 	}
+	if len(accessible) != len(cfg.Repos) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(fmt.Sprintf("User does not have access to all indexed repos. Partial access not (yet) supported. Acccesible repos %s", accessible)))
+		return
+	}
+	// TODO(kk): make signed JWT with repos user can access
+	// TODO(kk): set a cookie with the JWT
 	http.Redirect(w, r, cfg.AppURI, http.StatusSeeOther)
 }
 
