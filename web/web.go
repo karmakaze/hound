@@ -3,7 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -77,32 +77,35 @@ func (s *Server) loginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var httpClient = &http.Client{
-		Timeout: time.Second * 10,
+		Timeout: 10 * time.Second,
 	}
 	body := `{ "grant_type": "authorization_code",`
 	body += ` "client_id": "` + s.cfg.AuthClientId + `",`
 	body += ` "client_secret": "` + s.cfg.AuthClientSecret + `",`
 	body += ` "code": "` + strings.ReplaceAll(code, `"`, `\"`) + `",`
 	body += ` "redirect_uri": "` + s.cfg.AuthTokenRedirectURI + `" }`
+	log.Printf("POST %s body: %s", s.cfg.AuthTokenURI, body)
 	resp, err := httpClient.Post(s.cfg.AuthTokenURI, "application/json", strings.NewReader(body))
 	if err != nil {
 		log.Printf("Couldn't get token from code: %s", err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
-	s.validateTokenResponse(resp.Body, s.cfg, w, r)
+	if body, err := ioutil.ReadAll(resp.Body); err != nil {
+		log.Printf("Couldn't get token from code: %s", err)
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	} else {
+		s.validateTokenResponse(body, s.cfg, w, r)
+	}
 
 	// {"access_token":"___", "id_token":"___.___.___", "scope":"openid email", "expires_in":86400, "token_type":"Bearer"}
-
-	// TODO: validate the id_token (JWT) using s.cfg.JwtPublicKeyFilename
-	// https://github.com/dgrijalva/jwt-go
 }
 
-func (s *Server) validateTokenResponse(body io.ReadCloser, cfg *config.Config, w http.ResponseWriter, r *http.Request) {
+func (s *Server) validateTokenResponse(body []byte, cfg *config.Config, w http.ResponseWriter, r *http.Request) {
 	values := make(map[string]interface{})
-	decoder := json.NewDecoder(body)
-	if err := decoder.Decode(&values); err != nil {
-
+	if err := json.Unmarshal(body, &values); err != nil {
+		log.Printf("Error decoding json: %s", err)
 	}
 	accessToken, _ := values["access_token"].(string)
 	tokenType, _ := values["token_type"].(string)
