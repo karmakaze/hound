@@ -3,8 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -18,9 +16,9 @@ const (
 	defaultBaseUrl               = "{url}/blob/master/{path}{anchor}"
 	defaultAnchor                = "#L{line}"
 	defaultHealthChekURI         = "/healthz"
-	defaultLoginURI              = "/login"
-	defaultLoginCallbackURI      = "/login/callback"
-	defaultLogoutURI             = "/logout"
+	defaultLoginPath             = "/login"
+	defaultLoginCallbackPath     = "/login/callback"
+	defaultLogoutPath            = "/logout"
 )
 
 type UrlPattern struct {
@@ -63,19 +61,15 @@ type Config struct {
 	Repos                 map[string]*Repo `json:"repos"`
 	MaxConcurrentIndexers int              `json:"max-concurrent-indexers"`
 	HealthCheckURI        string           `json:"health-check-uri"`
-	LoginURI              string           `json:"login-uri"`
-	LoginCallbackURI      string           `json:"login-callback-uri"`
-	AuthorizeURI          string           `json:"authorize-uri"`
-	AuthTokenURI          string           `json:"auth-token-uri"`
-	AuthTokenRedirectURI  string           `json:"auth-token-redirect-uri"`
+	AppURI                string           `json:"app-uri"`
+	LoginPath             string           `json:"login-path"`
+	LoginCallbackPath     string           `json:"login-callback-path"`
+	LogoutPath            string           `json:"logout-path"`
 	AuthClientId          string           `json:"auth-client-id"`
 	AuthClientSecret      string           `json:"auth-client-secret"`
 	AuthCookieName        string           `json:"auth-cookie-name"`
-	LogoutURI             string           `json:"logout-uri"`
-	JwtPublicKey          []byte
-	JwtPublicKeyFilename  string `json:"jwt-public-key-filename"`
-	FullCertFilename      string `json:"full-cert-filename"`
-	PrivCertFilename      string `json:"priv-cert-filename"`
+	FullCertFilename      string           `json:"full-cert-filename"`
+	PrivCertFilename      string           `json:"priv-cert-filename"`
 }
 
 // SecretMessage is just like json.RawMessage but it will not
@@ -134,14 +128,6 @@ func initRepo(r *Repo) {
 
 // Populate missing config values with default values.
 func initConfig(c *Config) {
-	if len(c.JwtPublicKey) == 0 && c.JwtPublicKeyFilename != "" {
-		if data, err := ioutil.ReadFile(c.JwtPublicKeyFilename); err != nil {
-			log.Printf("Error reading jwt-public-key-filename %s: %s",
-				c.JwtPublicKeyFilename, err)
-		} else {
-			c.JwtPublicKey = data
-		}
-	}
 	if c.MaxConcurrentIndexers == 0 {
 		c.MaxConcurrentIndexers = defaultMaxConcurrentIndexers
 	}
@@ -150,14 +136,14 @@ func initConfig(c *Config) {
 		c.HealthCheckURI = defaultHealthChekURI
 	}
 
-	if c.LoginURI == "" {
-		c.LoginURI = defaultLoginURI
+	if c.LoginPath == "" {
+		c.LoginPath = defaultLoginPath
 	}
-	if c.LoginCallbackURI == "" {
-		c.LoginCallbackURI = defaultLoginCallbackURI
+	if c.LoginCallbackPath == "" {
+		c.LoginCallbackPath = defaultLoginCallbackPath
 	}
-	if c.LogoutURI == "" {
-		c.LogoutURI = defaultLogoutURI
+	if c.LogoutPath == "" {
+		c.LogoutPath = defaultLogoutPath
 	}
 }
 
