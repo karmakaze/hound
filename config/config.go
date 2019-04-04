@@ -1,10 +1,15 @@
 package config
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -68,8 +73,12 @@ type Config struct {
 	AuthClientId          string           `json:"auth-client-id"`
 	AuthClientSecret      string           `json:"auth-client-secret"`
 	AuthCookieName        string           `json:"auth-cookie-name"`
-	FullCertFilename      string           `json:"full-cert-filename"`
-	PrivCertFilename      string           `json:"priv-cert-filename"`
+	JwtPrivateKeyFilename string           `json:"jwt-private-key-filename"`
+	JwtPublicKeyFilename  string           `json:"jwt-public-key-filename"`
+	JwtPrivateKey         *rsa.PrivateKey
+	JwtPublicKey          *rsa.PublicKey
+	FullCertFilename      string `json:"full-cert-filename"`
+	PrivCertFilename      string `json:"priv-cert-filename"`
 }
 
 // SecretMessage is just like json.RawMessage but it will not
@@ -128,6 +137,26 @@ func initRepo(r *Repo) {
 
 // Populate missing config values with default values.
 func initConfig(c *Config) {
+	if c.JwtPrivateKey == nil && c.JwtPrivateKeyFilename != "" {
+		if data, err := ioutil.ReadFile(c.JwtPrivateKeyFilename); err != nil {
+			log.Printf("Error reading file '%s': %s", c.JwtPrivateKeyFilename, err)
+		} else {
+			c.JwtPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM(data)
+			if err != nil {
+				log.Printf("Error parsing file '%s': %s", c.JwtPrivateKeyFilename, err)
+			}
+		}
+	}
+	if c.JwtPublicKey == nil && c.JwtPublicKeyFilename != "" {
+		if data, err := ioutil.ReadFile(c.JwtPublicKeyFilename); err != nil {
+			log.Printf("Error reading file '%s': %s", c.JwtPublicKeyFilename, err)
+		} else {
+			c.JwtPublicKey, err = jwt.ParseRSAPublicKeyFromPEM(data)
+			if err != nil {
+				log.Printf("Error parsing file '%s': %s", c.JwtPublicKeyFilename, err)
+			}
+		}
+	}
 	if c.MaxConcurrentIndexers == 0 {
 		c.MaxConcurrentIndexers = defaultMaxConcurrentIndexers
 	}

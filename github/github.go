@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+
 	"github.com/karmakaze/hound/config"
 )
 
@@ -25,7 +27,7 @@ func Login(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
 
 	values := url.Values{}
 	values.Set("client_id", cfg.AuthClientId)
-	values.Set("scope", "read:user repo")
+	values.Set("scope", "read:user read:org repo")
 	values.Set("redirect_uri", cfg.AppURI+cfg.LoginCallbackPath)
 	values.Set("state", state)
 
@@ -91,6 +93,7 @@ func LoginCallback(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
 }
 
 func validateTokenResponse(values url.Values, cfg *config.Config, w http.ResponseWriter, r *http.Request) {
+	log.Printf("DEBUG token response %+v", values)
 	accessToken := values.Get("access_token")
 	tokenType := values.Get("token_type")
 	scope := values.Get("scope")
@@ -123,7 +126,33 @@ func validateTokenResponse(values url.Values, cfg *config.Config, w http.Respons
 		w.Write([]byte(fmt.Sprintf("User does not have access to all indexed repos. Partial access not (yet) supported. Acccesible repos %s", accessible)))
 		return
 	}
-	// TODO(kk): make signed JWT with repos user can access
+
+	now := time.Now()
+	claims := jwt.StandardClaims{
+		Audience:  "grepify",
+		ExpiresAt: now.Add(time.Duration(60 * time.Minute)).Unix(),
+		IssuedAt:  now.Unix(),
+		Issuer:    "grepify",
+		Subject:   "github user",
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	tokenString, err := token.SignedString(cfg.JwtPrivateKey)
+	if err != nil {
+		log.Fatalf("Error signing JWT: %s", err)
+	}
+
+	cookie := http.Cookie{
+		Name:     cfg.AuthCookieName,
+		Value:    tokenString,
+		Path:     "/",
+		Expires:  time.Unix(claims.ExpiresAt, 0),
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(w, &cookie)
+
 	// TODO(kk): set a cookie with the JWT
 	http.Redirect(w, r, cfg.AppURI, http.StatusSeeOther)
 }
