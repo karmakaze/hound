@@ -128,7 +128,7 @@ func (s *Server) validateJwt(idToken string, cfg *config.Config, w http.Response
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		if _, ok := token.Claims.(jwt.MapClaims); ok {
-			return cfg.JwtPublicKey, nil
+			return jwt.ParseRSAPublicKeyFromPEM(cfg.JwtPublicKey)
 		} else {
 			return nil, fmt.Errorf("token is missing claims")
 		}

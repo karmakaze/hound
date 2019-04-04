@@ -1,14 +1,12 @@
 package config
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 const (
@@ -141,15 +139,7 @@ func initConfig(c *Config) {
 			log.Printf("Error reading jwt-public-key-filename %s: %s",
 				c.JwtPublicKeyFilename, err)
 		} else {
-			b64 := string(data)
-			b64 = strings.Replace(b64, "-----BEGIN CERTIFICATE-----", "", 1)
-			b64 = strings.ReplaceAll(b64, "\r", "")
-			b64 = strings.ReplaceAll(b64, "\n", "")
-			b64 = strings.Replace(b64, "-----END CERTIFICATE-----", "", 1)
-			if c.JwtPublicKey, err = base64.StdEncoding.DecodeString(b64); err != nil {
-				log.Printf("Error base64 decoding contents of jwt-public-key-filename %s: %s",
-					c.JwtPublicKeyFilename, err)
-			}
+			c.JwtPublicKey = data
 		}
 	}
 	if c.MaxConcurrentIndexers == 0 {
