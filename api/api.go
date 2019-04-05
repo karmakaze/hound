@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/karmakaze/hound/config"
+	"github.com/karmakaze/hound/github"
 	"github.com/karmakaze/hound/index"
 	"github.com/karmakaze/hound/searcher"
 )
@@ -161,16 +162,16 @@ func parseRangeValue(rv string) (int, int) {
 
 func Setup(m *http.ServeMux, idx map[string]*searcher.Searcher) {
 
-	m.HandleFunc("/api/v1/repos", func(w http.ResponseWriter, r *http.Request) {
+	m.HandleFunc("/api/v1/repos", github.Authenticated(func(w http.ResponseWriter, r *http.Request) {
 		res := map[string]*config.Repo{}
 		for name, srch := range idx {
 			res[name] = srch.Repo
 		}
 
 		writeResp(w, res)
-	})
+	}))
 
-	m.HandleFunc("/api/v1/search", func(w http.ResponseWriter, r *http.Request) {
+	m.HandleFunc("/api/v1/search", github.Authenticated(func(w http.ResponseWriter, r *http.Request) {
 		var opt index.SearchOptions
 
 		stats := parseAsBool(r.FormValue("stats"))
@@ -209,17 +210,17 @@ func Setup(m *http.ServeMux, idx map[string]*searcher.Searcher) {
 		}
 
 		writeResp(w, &res)
-	})
+	}))
 
-	m.HandleFunc("/api/v1/excludes", func(w http.ResponseWriter, r *http.Request) {
+	m.HandleFunc("/api/v1/excludes", github.Authenticated(func(w http.ResponseWriter, r *http.Request) {
 		repo := r.FormValue("repo")
 		res := idx[repo].GetExcludedFiles()
 		w.Header().Set("Content-Type", "application/json;charset=utf-8")
 		w.Header().Set("Access-Control-Allow", "*")
 		fmt.Fprint(w, res)
-	})
+	}))
 
-	m.HandleFunc("/api/v1/update", func(w http.ResponseWriter, r *http.Request) {
+	m.HandleFunc("/api/v1/update", github.Authenticated(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			writeError(w,
 				errors.New(http.StatusText(http.StatusMethodNotAllowed)),
@@ -248,5 +249,5 @@ func Setup(m *http.ServeMux, idx map[string]*searcher.Searcher) {
 		}
 
 		writeResp(w, "ok")
-	})
+	}))
 }

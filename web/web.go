@@ -44,15 +44,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.lck.RLock()
-	defer s.lck.RUnlock()
-	if m := s.mux; m != nil {
-		m.ServeHTTP(w, r)
-	} else {
-		http.Error(w,
-			"Hound is not ready.",
-			http.StatusServiceUnavailable)
-	}
+	github.Authenticated(func(w http.ResponseWriter, r *http.Request) {
+		s.lck.RLock()
+		defer s.lck.RUnlock()
+		if m := s.mux; m != nil {
+			m.ServeHTTP(w, r)
+		} else {
+			http.Error(w,
+				"Hound is not ready.",
+				http.StatusServiceUnavailable)
+		}
+	})(w, r)
 }
 
 func (s *Server) serveWith(m *http.ServeMux) {

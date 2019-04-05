@@ -11,13 +11,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
-
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/karmakaze/hound/config"
 )
 
 var httpClient = &http.Client{
 	Timeout: 10 * time.Second,
+}
+
+var cfg *config.Config
+
+func Initialize(config *config.Config) {
+	cfg = config
 }
 
 func Login(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
@@ -148,13 +153,42 @@ func validateTokenResponse(values url.Values, cfg *config.Config, w http.Respons
 		Expires:  time.Unix(claims.ExpiresAt, 0),
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
 	}
 
 	http.SetCookie(w, &cookie)
 
 	// TODO(kk): set a cookie with the JWT
 	http.Redirect(w, r, cfg.AppURI, http.StatusSeeOther)
+}
+
+func Authenticated(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == cfg.LoginPath || r.URL.Path == cfg.LoginCallbackPath || r.URL.Path == cfg.LogoutPath {
+			handler(w, r)
+			return
+		}
+
+		if cookie, err := r.Cookie(cfg.AuthCookieName); err != nil {
+			http.Redirect(w, r, cfg.LoginPath, http.StatusSeeOther)
+			return
+		} else {
+			token, err := jwt.Parse(cookie.Value, func(token *jwt.Token) (interface{}, error) {
+				// Don't forget to validate the alg is what you expect:
+				if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+					return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				}
+				return cfg.JwtPublicKey, nil
+			})
+
+			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+				log.Printf("DEBUG token valid: claims %+v", claims)
+				handler(w, r)
+			} else {
+				log.Printf("Error token '%s' invalid: %+v", cookie.Value, err)
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+			}
+		}
+	}
 }
 
 func randomHexBytes(n int) string {

@@ -15,6 +15,7 @@ import (
 
 	"github.com/karmakaze/hound/api"
 	"github.com/karmakaze/hound/config"
+	"github.com/karmakaze/hound/github"
 	"github.com/karmakaze/hound/searcher"
 	"github.com/karmakaze/hound/ui"
 	"github.com/karmakaze/hound/web"
@@ -127,6 +128,7 @@ func main() {
 	if err := cfg.LoadFromFile(*flagConf); err != nil {
 		panic(err)
 	}
+	github.Initialize(&cfg)
 
 	// Start the web server on a background routine.
 	ws := web.Start(&cfg, *flagAddr, *flagDev)
